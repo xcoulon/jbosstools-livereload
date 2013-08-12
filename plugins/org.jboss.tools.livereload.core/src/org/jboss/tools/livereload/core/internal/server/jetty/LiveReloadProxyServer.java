@@ -12,6 +12,7 @@
 package org.jboss.tools.livereload.core.internal.server.jetty;
 
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
 
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
@@ -36,20 +37,28 @@ public class LiveReloadProxyServer extends Server {
 	/**
 	 * Constructor
 	 * 
-	 * @param config
-	 *            the LiveReload configuration to use.
+	 * @param proxyPort
+ 	 * @param targetHost
+	 * @param targetPort
+	 * @param liveReloadPort
+	 * @param allowRemoteConnections
+	 * @param enableScriptInjection
+	 * @param defaultCharset
+	 *            The defaultCharset to use when reading local files and no
+	 *            defaultCharset has been specified in the
+	 *            <code>accept<code> header of the incoming request.
 	 * @throws UnknownHostException
 	 */
 	public LiveReloadProxyServer(final int proxyPort, final String targetHost, final int targetPort, final int liveReloadPort, final boolean allowRemoteConnections,
-			final boolean enableScriptInjection) {
+			final boolean enableScriptInjection, final Charset defaultCharset) {
 		super();
 		this.proxyPort = proxyPort;
 		this.targetPort = targetPort;
-		configure(proxyPort, targetHost, targetPort, liveReloadPort, allowRemoteConnections, enableScriptInjection);
+		configure(proxyPort, targetHost, targetPort, liveReloadPort, allowRemoteConnections, enableScriptInjection, defaultCharset);
 	}
 
 	private void configure(final int proxyPort, final String targetHost, final int targetPort, final int liveReloadPort, final boolean allowRemoteConnections,
-			final boolean enableScriptInjection) {
+			final boolean enableScriptInjection, final Charset defaultCharset) {
 		setAttribute(JettyServerRunner.NAME, "LiveReload-Proxy-Server-" + proxyPort + ":" + targetPort);
 		final SelectChannelConnector connector = new SelectChannelConnector();
 		if (!allowRemoteConnections) {
@@ -65,7 +74,7 @@ public class LiveReloadProxyServer extends Server {
 		context.addServlet(servletHolder, "/*");
 		setHandler(context);
 		if (enableScriptInjection) {
-			context.addFilter(new FilterHolder(new LiveReloadScriptInjectionFilter(liveReloadPort)), "/*", null);
+			context.addFilter(new FilterHolder(new LiveReloadScriptInjectionFilter(liveReloadPort, defaultCharset)), "/*", null);
 		}
 	}
 

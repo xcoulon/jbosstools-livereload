@@ -38,7 +38,10 @@ public class LiveReloadLaunchConfiguration implements ILaunchConfigurationDelega
 
 	public static final String ENABLE_SCRIPT_INJECTION = JBossLiveReloadCoreActivator.PLUGIN_ID + ".enable_script_injection";
 
+	public static final String CHARSET = JBossLiveReloadCoreActivator.PLUGIN_ID + ".charset";
+
 	public static final int DEFAULT_WEBSOCKET_PORT = 35729;
+
 
 	@Override
 	public void launch(ILaunchConfiguration configuration, String mode, ILaunch launch, IProgressMonitor monitor)

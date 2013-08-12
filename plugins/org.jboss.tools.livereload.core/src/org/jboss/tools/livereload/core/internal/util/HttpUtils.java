@@ -11,6 +11,7 @@
 
 package org.jboss.tools.livereload.core.internal.util;
 
+import java.nio.charset.Charset;
 import java.util.StringTokenizer;
 
 /**
@@ -45,7 +46,7 @@ public class HttpUtils {
 		if (acceptedContentTypes == null) {
 			return false;
 		}
-		// first, let's remove everything after the coma character
+		// first, let's remove everything behind the comma character
 		int location = acceptedContentTypes.indexOf(";");
 		final String contentTypes = (location != -1) ? acceptedContentTypes.substring(0, location):acceptedContentTypes; 
 		// now, let's analyze each type
@@ -58,6 +59,34 @@ public class HttpUtils {
 			}
 		}
 		return false;
+	}
+	
+	/**
+	 * Returns the {@link Charset} from the given content-type.
+	 * 
+	 * @param contentType
+	 *            the given content type that may contain some ";charset=...".
+	 * @param defaultCharset
+	 *            the default charset to return in case when the given
+	 *            contentType would be null or would not contain any specific
+	 *            charset.
+	 * @return the value of the "charset" token in the given contentType, or
+	 *         null if not found.
+	 */
+	public static Charset getContentCharSet(final String contentType, final Charset defaultCharset) {
+		if(contentType != null) { 
+			final StringTokenizer stk = new StringTokenizer(contentType, ";");
+			while(stk.hasMoreTokens()) {
+				final String token = stk.nextToken().toLowerCase().replace(" ", "");
+				if(token.startsWith("charset=")) { 
+					final StringTokenizer tokenSplitter = new StringTokenizer(token, "=");
+					tokenSplitter.nextToken(); // skip the 'charset' part as we already know it
+					final String value = tokenSplitter.hasMoreTokens()? tokenSplitter.nextToken() : null;
+					return Charset.forName(value.toUpperCase());
+				}
+			}
+		}
+		return defaultCharset;
 	}
 
 }

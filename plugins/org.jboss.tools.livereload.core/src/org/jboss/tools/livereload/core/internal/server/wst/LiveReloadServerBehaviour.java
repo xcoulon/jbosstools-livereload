@@ -11,6 +11,7 @@
 
 package org.jboss.tools.livereload.core.internal.server.wst;
 
+import java.nio.charset.Charset;
 import java.util.EventObject;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -125,14 +126,14 @@ public class LiveReloadServerBehaviour extends ServerBehaviourDelegate implement
 			final IServer server = getServer();
 			// retrieve the websocket port, use the default value if it was missing
 			websocketPort = server.getAttribute(LiveReloadLaunchConfiguration.WEBSOCKET_PORT, LiveReloadLaunchConfiguration.DEFAULT_WEBSOCKET_PORT);
-			
 			// fix the new default behaviour: proxy is now always enabled
 			if(!isProxyEnabled()) {
 				setProxyEnabled(true);
 			}
+			final Charset defaultCharset = getDefaultCharset();
 			final boolean allowRemoteConnections = isRemoteConnectionsAllowed();
 			final boolean enableScriptInjection = isScriptInjectionEnabled();
-			this.liveReloadServer = new LiveReloadServer(server.getName(), websocketPort, true, allowRemoteConnections,
+			this.liveReloadServer = new LiveReloadServer(server.getName(), websocketPort, defaultCharset, true, allowRemoteConnections,
 					enableScriptInjection);
 			this.liveReloadServerRunnable = JettyServerRunner.start(liveReloadServer);
 			if(!this.liveReloadServerRunnable.isSuccessfullyStarted()) { 
@@ -149,6 +150,13 @@ public class LiveReloadServerBehaviour extends ServerBehaviourDelegate implement
 			setServerStopped();
 			throw new CoreException(new Status(IStatus.ERROR, JBossLiveReloadCoreActivator.PLUGIN_ID, e.getMessage(), e));
 		}
+	}
+
+	/**
+	 * @return the default {@link Charset} to use when encoding files
+	 */
+	private Charset getDefaultCharset() {
+		return Charset.forName(getServer().getAttribute(LiveReloadLaunchConfiguration.CHARSET, "UTF-8"));
 	}
 
 	/**
@@ -328,8 +336,9 @@ public class LiveReloadServerBehaviour extends ServerBehaviourDelegate implement
 					final boolean allowRemoteConnections = isRemoteConnectionsAllowed();
 					final boolean enableScriptInjection = isScriptInjectionEnabled();
 					final int proxyPort = getProxyPort(startedServer);
+					final Charset defaultCharset = getDefaultCharset();
 					final LiveReloadProxyServer proxyServer = new LiveReloadProxyServer(proxyPort, startedServer.getHost(), targetPort,
-							websocketPort, allowRemoteConnections, enableScriptInjection);
+							websocketPort, allowRemoteConnections, enableScriptInjection, defaultCharset);
 					proxyServers.put(startedServer, proxyServer);
 					final JettyServerRunner proxyRunner = JettyServerRunner.start(proxyServer);
 					proxyRunners.put(startedServer, proxyRunner);

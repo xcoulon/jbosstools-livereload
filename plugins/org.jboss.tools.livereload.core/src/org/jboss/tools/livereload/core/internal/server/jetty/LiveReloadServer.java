@@ -11,7 +11,7 @@
 
 package org.jboss.tools.livereload.core.internal.server.jetty;
 
-import java.net.UnknownHostException;
+import java.nio.charset.Charset;
 import java.util.EventObject;
 
 import org.eclipse.jetty.server.Server;
@@ -49,27 +49,30 @@ public class LiveReloadServer extends Server implements Subscriber {
 
 	/**
 	 * Constructor
-	 * 
-	 * @param config
-	 *            the LiveReload configuration to use.
-	 * @throws UnknownHostException
+	 * @param name the server name (appears in the Servers Views)
+	 * @param websocketPort the websocket port
+	 * @param charset the charset to use when reading local files
+	 * @param enableProxyServer flag to enable the proxy server
+	 * @param allowRemoteConnections flag to allow remote connections
+	 * @param enableScriptInjection flag to enable script injection
 	 */
-	public LiveReloadServer(final String name, final int websocketPort, final boolean enableProxyServer,
+	public LiveReloadServer(final String name, final int websocketPort, final Charset charset, final boolean enableProxyServer,
 			final boolean allowRemoteConnections, final boolean enableScriptInjection) {
 		super();
 		this.websocketPort = websocketPort;
-		configure(name, websocketPort, enableProxyServer, allowRemoteConnections, enableScriptInjection);
+		configure(name, websocketPort, charset, enableProxyServer, allowRemoteConnections, enableScriptInjection);
 	}
 
 	/**
 	 * Configure the Jetty Server with the given parameters
 	 * @param name the server name (same as the Server Adapter)
 	 * @param websocketPort the websockets port
+	 * @param defaultCharset the charset to use when reading local files
 	 * @param enableProxyServer should proxy be enabled 
 	 * @param allowRemoteConnections should allow remote connections
 	 * @param enableScriptInjection should inject livereload.js script in returned HTML pages
 	 */
-	private void configure(final String name, final int websocketPort, final boolean enableProxyServer,
+	private void configure(final String name, final int websocketPort, final Charset defaultCharset, final boolean enableProxyServer,
 			final boolean allowRemoteConnections, final boolean enableScriptInjection) {
 		setAttribute(JettyServerRunner.NAME, name);
 		websocketConnector = new SelectChannelConnector();
@@ -90,11 +93,11 @@ public class LiveReloadServer extends Server implements Subscriber {
 		liveReloadServletHolder
 				.setInitParameter(MIN_WEB_SOCKET_PROTOCOL_VERSION, MIN_WEB_SOCKET_PROTOCOL_VERSION_VALUE);
 		context.addServlet(liveReloadServletHolder, "/livereload");
-		context.addServlet(new ServletHolder(new LiveReloadScriptFileServlet()), "/livereload.js");
+		context.addServlet(new ServletHolder(new LiveReloadScriptFileServlet(defaultCharset)), "/livereload.js");
 		if (enableProxyServer) {
-			context.addServlet(new ServletHolder(new WorkspaceFileServlet()), "/*");
+			context.addServlet(new ServletHolder(new WorkspaceFileServlet(defaultCharset)), "/*");
 			if (enableScriptInjection) {
-				context.addFilter(new FilterHolder(new LiveReloadScriptInjectionFilter(websocketPort)), "/*", null);
+				context.addFilter(new FilterHolder(new LiveReloadScriptInjectionFilter(websocketPort, defaultCharset)), "/*", null);
 			}
 		}
 		EventService.getInstance().subscribe(this, new LiveReloadClientConnectionFilter());

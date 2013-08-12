@@ -13,6 +13,7 @@ package org.jboss.tools.livereload.core.internal.server.jetty;
 
 import java.io.IOException;
 import java.net.URLConnection;
+import java.nio.charset.Charset;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -23,6 +24,7 @@ import org.apache.commons.io.IOUtils;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
+import org.jboss.tools.livereload.core.internal.util.HttpUtils;
 import org.jboss.tools.livereload.core.internal.util.Logger;
 import org.jboss.tools.livereload.core.internal.util.ResourceUtils;
 
@@ -35,8 +37,26 @@ public class WorkspaceFileServlet extends HttpServlet {
 	/** serialVersionUID */
 	private static final long serialVersionUID = 163695311668462503L;
 
+	/**
+	 * The defaultCharset to use when reading local files and no defaultCharset has been
+	 * specified in the <code>accept<code> header of the incoming request.
+	 */
+	private final Charset defaultCharset;
+
+	/**
+	 * Default constructor.
+	 * 
+	 * @param defaultCharset
+	 *            The defaultCharset to use when reading local files and no defaultCharset has
+	 *            been specified in the
+	 *            <code>accept<code> header of the incoming request.
+	 */
+	public WorkspaceFileServlet(final Charset defaultCharset) {
+		this.defaultCharset = defaultCharset;
+	}
+
 	@Override
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	protected void doGet(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
 		final HttpServletResponse httpServletResponse = (HttpServletResponse) response;
 		final String requestURI = request.getRequestURI();
 		Logger.info("Serving " + requestURI);
@@ -49,7 +69,12 @@ public class WorkspaceFileServlet extends HttpServlet {
 					final byte[] scriptContent = IOUtils.toByteArray(((IFile) resource).getContents());
 					httpServletResponse.getOutputStream().write(scriptContent);
 					httpServletResponse.setStatus(200);
-					httpServletResponse.setContentType(URLConnection.guessContentTypeFromName(resource.getName()));
+					final Charset charset = HttpUtils.getContentCharSet(request.getHeader("accept"), defaultCharset);
+					String guessedContentType = URLConnection.guessContentTypeFromName(resource.getName());
+					if(guessedContentType != null && !guessedContentType.contains("charset")) {
+						guessedContentType = guessedContentType.concat("; charset=").concat(charset.name());
+					}
+					httpServletResponse.setContentType(guessedContentType);
 					// httpServletResponse.setContentType("text/javascript");
 				} catch (CoreException e) {
 					Logger.error("Error occurred while returning content at location: " + requestURI, e);
