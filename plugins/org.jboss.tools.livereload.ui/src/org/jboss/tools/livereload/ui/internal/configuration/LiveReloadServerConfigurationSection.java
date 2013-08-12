@@ -21,15 +21,16 @@ import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.forms.IFormColors;
 import org.eclipse.ui.forms.widgets.ExpandableComposite;
-import org.eclipse.ui.forms.widgets.FormToolkit;
 import org.eclipse.ui.forms.widgets.Section;
 import org.eclipse.wst.server.core.IServerWorkingCopy;
 import org.eclipse.wst.server.ui.editor.ServerEditorSection;
@@ -43,14 +44,17 @@ import org.jboss.tools.livereload.core.internal.server.wst.LiveReloadLaunchConfi
 @SuppressWarnings("restriction")
 public class LiveReloadServerConfigurationSection extends ServerEditorSection {
 
+	private static final String[] DEFAULT_CHARSETS = new String[]{"UTF-8", "ISO-8859-1", "US-ASCII", "UTF-16", "UTF-16BE", "UTF-16LE"};
+	
 	private Text websocketPortText;
 	private Button remoteConnectionsEnablementButton;
 	private Button scriptInjectionEnablementButton;
 	private ControlDecoration websocketPortDecoration;
+	private Combo charsetsCombo;
 
 	public void createSection(Composite parent) {
 		super.createSection(parent);
-		FormToolkit toolkit = new FormToolkit(parent.getDisplay());
+		ExtendedFormToolkit toolkit = new ExtendedFormToolkit(parent.getDisplay());
 		Section section = toolkit.createSection(parent, ExpandableComposite.TWISTIE | ExpandableComposite.EXPANDED
 				| ExpandableComposite.TITLE_BAR);
 		section.setText(LiveReloadServerConfigurationMessages.WEBSOCKET_SERVER_CONFIGURATION_TITLE);
@@ -86,7 +90,28 @@ public class LiveReloadServerConfigurationSection extends ServerEditorSection {
 			}
 		};
 		websocketPortText.addModifyListener(websocketPortModifyListener);
-		
+		// charset / file encoding
+		final Label charsetLabel = toolkit.createLabel(composite,
+				LiveReloadServerConfigurationMessages.CHARSET_LABEL);
+		charsetLabel.setForeground(toolkit.getColors().getColor(IFormColors.TITLE));
+		charsetsCombo = toolkit.createCombo(composite, SWT.NONE, DEFAULT_CHARSETS, server.getAttribute(LiveReloadLaunchConfiguration.CHARSET, "UTF-8"));
+		charsetsCombo.setToolTipText(LiveReloadServerConfigurationMessages.CHARSET_DESCRIPTION);
+		final SelectionListener comboSelectionListener = new SelectionListener() {
+			
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				execute(new SetCharsetCommand(server));
+			}
+			
+			@Override
+			public void widgetDefaultSelected(SelectionEvent e) {}
+		};
+		charsetsCombo.addSelectionListener(comboSelectionListener);
+		d = new GridData();
+		d.grabExcessHorizontalSpace = true;
+		d.widthHint = 100;
+		d.horizontalIndent = 10;
+		charsetsCombo.setLayoutData(d);
 		// livereload.js script injection enablement
 		scriptInjectionEnablementButton = toolkit.createButton(composite,
 				LiveReloadServerConfigurationMessages.ENABLE_SCRIPT_INJECTION_LABEL, SWT.CHECK);
@@ -163,6 +188,27 @@ public class LiveReloadServerConfigurationSection extends ServerEditorSection {
 				websocketPortDecoration.show();
 			}
 
+		}
+
+	}
+	
+	public class SetCharsetCommand extends ServerCommand {
+
+		public SetCharsetCommand(IServerWorkingCopy server) {
+			super(server, LiveReloadServerConfigurationMessages.CHARSET_COMMAND);
+		}
+
+		@Override
+		public void execute() {
+			server.setAttribute(LiveReloadLaunchConfiguration.CHARSET, charsetsCombo.getItem(charsetsCombo.getSelectionIndex()));
+		}
+
+		@Override
+		public void undo() {
+			final String originalValue = server.getOriginal().getAttribute(
+					LiveReloadLaunchConfiguration.CHARSET, "");
+			server.setAttribute(LiveReloadLaunchConfiguration.CHARSET, originalValue);
+			charsetsCombo.setText(originalValue);
 		}
 
 	}

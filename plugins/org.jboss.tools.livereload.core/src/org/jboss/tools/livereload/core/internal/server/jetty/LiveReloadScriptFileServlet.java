@@ -13,6 +13,7 @@ package org.jboss.tools.livereload.core.internal.server.jetty;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -21,6 +22,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.IOUtils;
 import org.jboss.tools.livereload.core.internal.JBossLiveReloadCoreActivator;
+import org.jboss.tools.livereload.core.internal.util.HttpUtils;
 import org.jboss.tools.livereload.core.internal.util.Logger;
 
 /**
@@ -32,14 +34,25 @@ public class LiveReloadScriptFileServlet extends HttpServlet {
 	/** serialVersionUID */
 	private static final long serialVersionUID = 163695311668462503L;
 
+	/**
+	 * The defaultCharset to use when reading local files and no defaultCharset has been
+	 * specified in the <code>accept<code> header of the incoming request.
+	 */
+	private final Charset defaultCharset;
+	
+	public LiveReloadScriptFileServlet(final Charset defaultCharset) {
+		this.defaultCharset = defaultCharset;
+	}
+
 	@Override
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	protected void doGet(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
 		Logger.info("Serving embedded /livereload.js");
-		HttpServletResponse httpServletResponse = (HttpServletResponse) response;
+		final Charset charset = HttpUtils.getContentCharSet(request.getHeader("accept"), defaultCharset);
+		final HttpServletResponse httpServletResponse = (HttpServletResponse) response;
 		final InputStream scriptContent = JBossLiveReloadCoreActivator.getDefault().getResourceContent("/script/livereload.js");
 		httpServletResponse.getOutputStream().write(IOUtils.toByteArray(scriptContent));
 		httpServletResponse.setStatus(200);
-		httpServletResponse.setContentType("text/javascript");
+		httpServletResponse.setContentType("text/javascript; charset=" + charset.name());
 	}
 
 }
