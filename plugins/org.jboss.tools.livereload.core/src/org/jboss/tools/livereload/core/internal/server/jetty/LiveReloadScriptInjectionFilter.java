@@ -213,8 +213,8 @@ public class LiveReloadScriptInjectionFilter implements Filter {
 			// see http://mark.koli.ch/2009/09/remember-kids-an-http-content-length-is-the-number-of-bytes-not-the-number-of-characters.html
 			final CharBuffer charBuffer = CharBuffer.wrap(responseContent);
 			final ByteBuffer byteBuffer = charset.encode(charBuffer);
-			((HttpServletResponse) getResponse()).setHeader("Content-length", Integer.toString(byteBuffer.array().length));
-				IOUtils.write(responseContent, getResponse().getOutputStream(), charset.name());
+			((HttpServletResponse) getResponse()).setHeader("Content-Length", Integer.toString(byteBuffer.array().length));
+			IOUtils.write(byteBuffer.array(), getResponse().getOutputStream());
 			responseOutputStream.close();
 		}
 		
